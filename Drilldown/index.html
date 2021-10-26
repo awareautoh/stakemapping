@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lao action Mapping</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="https://code.highcharts.com/maps/highmaps.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/data.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/drilldown.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/maps/modules/offline-exporting.js"></script>
+    <!-- <script src="https://code.highcharts.com/mapdata/countries/us/us-all.js"></script> -->
+    <script src="lao.js"></script>
+    <link href="https://netdna.bootstrapcdn.com/font-awesome/3.2.1/css/font-awesome.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+</head>
+<body>
+    <div id="container" style="height: 600px; min-width: 500px; max-width: 800px; margin: 0 auto"></div>
+    <script type="text/javascript">
+
+    		
+        /*
+        TODO:
+        - Check data labels after drilling. Label rank? New positions?
+        */
+
+        let data = Highcharts.geojson(Highcharts.maps['countries/la/la-all']);
+        const separators = Highcharts.geojson(Highcharts.maps['countries/la/la-all'], 'mapline');
+
+        /****
+			Data for province here 
+
+        **/
+
+        // Set drilldown pointers
+        data.forEach((d, i) => {
+            d.drilldown = d.properties['ADM1_EN'];
+            d.value = i; // Non-random bogus data
+        });
+
+
+
+
+        function getScript(url, cb) {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = cb;
+            document.head.appendChild(script);
+        }
+
+        // Instantiate the map
+        Highcharts.mapChart('container', {
+            chart: {
+                events: {
+                    drilldown: function (e) {
+                        if (!e.seriesOptions) {
+                            const chart = this,
+                                mapKey = e.point.drilldown + '-all';
+
+                            // Handle error, the timeout is cleared on success
+                            let fail = setTimeout(() => {
+                                if (!Highcharts.maps[mapKey]) {
+                                    chart.showLoading('<i class="icon-frown"></i> Failed loading ' + e.point.name);
+                                    fail = setTimeout(() => {
+                                        chart.hideLoading();
+                                    }, 1000);
+                                }
+                            }, 3000);
+                            console.log(mapKey);
+                            // Show the spinner
+                            chart.showLoading('<i class="icon-spinner icon-spin icon-3x"></i>'); // Font Awesome spinner
+
+                            // Load the drilldown map
+                            getScript('mapjs/'+mapKey + '.js', () => {
+                                mdata = Highcharts.geojson(Highcharts.maps[mapKey]);
+
+                                //console.log(data);
+                                //Set a non-random bogus value
+                                // data.forEach((d, i) => {
+                                //     d.value = i;
+                                // // });
+
+                              
+                                //     		var data2 = [{
+                                // 	    	"ADM2_PCODE": "LA0201", 
+                                // 	    	"value":3
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0202",
+                                // 	    	"value": 7
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0203",
+                                // 	    	"value": 12
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0204",
+                                // 	    	"value": 9
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0205", 
+                                // 	    	"value":15
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0206", 
+                                // 	    	"value":9
+                                // 	    },
+                                // 	    {
+                                // 	    	"ADM2_PCODE": "LA0207",
+                                // 	    	"value": 19
+                                // 	    }
+                                // 	    ];
+                                var url = 'https://raw.githubusercontent.com/awareautoh/nutrition/main/datafinal.json';
+                                Highcharts.getJSON(url,function(data2){
+                                	dvalue = data2;
+                                	console.log(data2);
+                                	//Hide loading and add series
+                                	chart.hideLoading();
+                                	clearTimeout(fail);
+                                	chart.addSeriesAsDrilldown(e.point, {
+                                	    name: e.point.properties.ADM1_EN,
+                                	    data: data2,
+                                	    joinBy:['ADM2_PCODE','ADM2_PCODE'],
+                                	    mapData:mdata,
+                                	    dataLabels: {
+                                	        enabled: true,
+                                	        format: '{point.properties.ADM2_LO}'
+                                	    }
+                                	});
+                                });
+                                //console.log(data);
+                                        /****
+                                			Data for District here 
+
+                                        **/
+
+
+                              
+                            });
+                        }
+
+
+                        this.setTitle(null, { text: e.point.properties.ADM1_EN });
+                    },
+                    drillup: function () {
+                        this.setTitle(null, { text: '' });
+                    }
+                }
+            },
+
+            title: {
+                text: 'Action mapping'
+            },
+
+            subtitle: {
+                text: '',
+                floating: true,
+                align: 'right',
+                y: 50,
+                style: {
+                    fontSize: '16px'
+                }
+            },
+
+            colorAxis: {
+                min: 0,
+                minColor: '#E6E7E8',
+                maxColor: '#005645'
+            },
+             tooltip: {
+              formatter: function() {
+                return 'Province: <b>' + this.point.properties.ADM1_EN + '</b><br/>' +
+                  'District: <b>' + this.point.properties.ADM2_EN + '</b><br/>' +
+                  'Number of interventions: <b>' + this.point.value + '</b><br/>';
+                 
+
+              }
+            },
+
+            mapNavigation: {
+                enabled: true,
+                buttonOptions: {
+                    verticalAlign: 'bottom'
+                }
+            },
+
+            plotOptions: {
+                map: {
+                    states: {
+                        hover: {
+                            color: '#EEDD66'
+                        }
+                    }
+                }
+            },
+
+            series: [{
+                data: data,
+                name: 'Lao',
+                dataLabels: {
+                    enabled: true,
+                    format: '{point.properties.ADM1_LO}'
+                }
+
+            }, {
+                type: 'mapline',
+                data: separators,
+                color: 'silver',
+                enableMouseTracking: false,
+                animation: {
+                    duration: 500
+                }
+            }],
+
+            drilldown: {
+                activeDataLabelStyle: {
+                    color: '#FFFFFF',
+                    textDecoration: 'none',
+                    textOutline: '1px #000000'
+                },
+                drillUpButton: {
+                    relativeTo: 'spacingBox',
+                    position: {
+                        x: -6,
+                        y: 70
+                    }
+                }
+            }
+        });
+		 
+    </script>
+</body>
+</html>
